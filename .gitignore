@@ -210,7 +210,6 @@ next-env.d.ts
 
 ### react ###
 .DS_*
-logs
 **/*.backup.*
 **/*.back.*
 
@@ -267,5 +266,31 @@ $RECYCLE.BIN/
 
 # Windows shortcuts
 *.lnk
+
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# dependencies
+/.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+# testing
+/coverage
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# env files (can opt-in for committing if needed)
+.env*
+
+# vercel
+.vercel
 
 # End of https://www.toptal.com/developers/gitignore/api/react,nextjs,java,windows,macos,intellij,visualstudiocode
