@@ -1,74 +1,35 @@
-import { createReactBlockSpec } from '@blocknote/react';
 import { defaultProps } from '@blocknote/core';
+import { createReactBlockSpec } from '@blocknote/react';
 import { Menu } from '@mantine/core';
 import { MdCancel, MdCheckCircle, MdError, MdInfo } from 'react-icons/md';
 
-// The types of alerts that users can choose from.
-export const alertTypes = [
-  {
-    title: 'Warning',
-    value: 'warning',
-    icon: MdError,
-    color: '#e69819',
-    backgroundColor: {
-      light: '#fff6e6',
-      dark: '#805d20',
-    },
-  },
-  {
-    title: 'Error',
-    value: 'error',
-    icon: MdCancel,
-    color: '#d80d0d',
-    backgroundColor: {
-      light: '#ffe6e6',
-      dark: '#802020',
-    },
-  },
-  {
-    title: 'Info',
-    value: 'info',
-    icon: MdInfo,
-    color: '#507aff',
-    backgroundColor: {
-      light: '#e6ebff',
-      dark: '#203380',
-    },
-  },
-  {
-    title: 'Success',
-    value: 'success',
-    icon: MdCheckCircle,
-    color: '#0bc10b',
-    backgroundColor: {
-      light: '#e6ffe6',
-      dark: '#208020',
-    },
-  },
-] as const;
-
-// Alert 타입 정의
+// 알림 타입 정의
 export type AlertType = 'warning' | 'error' | 'info' | 'success';
 
-// 알림 블록 스펙 생성
+// The Alert block.
 export const Alert = createReactBlockSpec(
   {
-    type: 'alert' as const,
+    type: 'alert',
     propSchema: {
       textAlignment: defaultProps.textAlignment,
       textColor: defaultProps.textColor,
       type: {
-        default: 'warning' as AlertType,
-        values: ['warning', 'error', 'info', 'success'] as AlertType[],
+        default: 'warning',
+        values: ['warning', 'error', 'info', 'success'],
       },
     },
     content: 'inline',
   },
   {
     render: function AlertComponent(props) {
-      const alertType = alertTypes.find(
-        (a) => a.value === props.block.props.type,
-      )!;
+      const alertTypes = {
+        warning: { icon: MdError, color: '#e69819', title: 'Warning' },
+        error: { icon: MdCancel, color: '#d80d0d', title: 'Error' },
+        info: { icon: MdInfo, color: '#507aff', title: 'Info' },
+        success: { icon: MdCheckCircle, color: '#0bc10b', title: 'Success' },
+      };
+
+      const alertType = alertTypes[props.block.props.type];
       const Icon = alertType.icon;
 
       // Tailwind classes based on alert type
@@ -107,24 +68,24 @@ export const Alert = createReactBlockSpec(
             <Menu.Dropdown>
               <Menu.Label>Alert Type</Menu.Label>
               <Menu.Divider />
-              {alertTypes.map((type) => {
-                const ItemIcon = type.icon;
+              {Object.entries(alertTypes).map(([value, data]) => {
+                const ItemIcon = data.icon;
+                // 여기서 타입 캐스팅
+                const typedValue = value as AlertType;
                 return (
                   <Menu.Item
-                    key={type.value}
+                    key={value}
                     leftSection={
-                      <ItemIcon
-                        className={iconClasses[type.value as AlertType]}
-                      />
+                      <ItemIcon className={iconClasses[typedValue]} />
                     }
                     onClick={() =>
                       props.editor.updateBlock(props.block, {
                         type: 'alert',
-                        props: { type: type.value },
+                        props: { type: typedValue },
                       })
                     }
                   >
-                    {type.title}
+                    {data.title}
                   </Menu.Item>
                 );
               })}
