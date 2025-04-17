@@ -42,6 +42,16 @@ const eslintConfig = [
           unnamedComponents: 'arrow-function',
         },
       ],
+      'import/extensions': [
+        'error',
+        'ignorePackages',
+        {
+          js: 'never',
+          jsx: 'never',
+          ts: 'never',
+          tsx: 'never',
+        },
+      ],
     },
 
     // 설정도 여기로 통합
