@@ -3,7 +3,11 @@
 import "@blocknote/core/fonts/inter.css";
 import { BlockNoteView } from "@blocknote/mantine";
 import "@blocknote/mantine/style.css";
-import { useCreateBlockNote } from "@blocknote/react";
+import {
+  DefaultReactGridSuggestionItem,
+  GridSuggestionMenuController,
+  useCreateBlockNote,
+} from "@blocknote/react";
 // 상대 경로로 shiki.bundle.js 임포트
 import { createHighlighter } from "@/public/shiki.bundle";
 
@@ -68,5 +72,12 @@ export default function Editor() {
   });
 
   // 에디터 렌더링
-  return <BlockNoteView editor={editor} />;
+  return (
+    <BlockNoteView editor={editor}>
+      <GridSuggestionMenuController
+        triggerCharacter={":"}
+        columns={8}     // 원하는 열 수로 조정
+      />
+    </BlockNoteView>
+  );
 }
