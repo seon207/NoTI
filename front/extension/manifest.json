@@ -1,37 +1,50 @@
 {
-    "manifest_version": 3,
-    "name": "유튜브 영상 캡쳐",
-    "version": "1.0",
-    "description": "유튜브 동영상을 캡쳐하는 크롬 익스텐션",
-    "permissions": [
-        "activeTab",
-        "scripting",
-        "downloads",
-        "storage",
-        "clipboardWrite",
-        "clipboardRead"
-    ],
-    "host_permissions": [
-        "https://www.youtube.com/*"
-    ],
-    "action": {
-        "default_popup": "popup.html",
-        "default_icon": {
-            "16": "images/16.png",
-            "48": "images/48.png",
-            "128": "images/128.png"
-        }
-    },
-    "background": {
-        "service_worker": "service-worker.js"
-    },
-    "commands": {
-        "capture-youtube-video": {
-            "suggested_key": {
-                "default": "Ctrl+Shift+Y",
-                "mac": "Command+Shift+Y"
-            },
-            "description": "유튜브 영상 캡쳐하기"
-        }
+  "manifest_version": 3,
+  "name": "유튜브 영상 영역 캡처",
+  "version": "1.0",
+  "description": "브라우저에서 영역을 선택하여 캡처하는 확장 프로그램",
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "clipboardWrite",
+    "clipboardRead",
+    "storage",
+    "tabs"
+  ],
+  "host_permissions": [
+    "http://localhost:3000/*",
+    "https://www.youtube.com/*"
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["cropper.html", "cropper.js"],
+      "matches": ["<all_urls>"]
     }
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "images/16.png",
+      "48": "images/48.png",
+      "128": "images/128.png"
+    }
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["http://localhost:3000/lecture/*"],
+      "js": ["content-script.js"]
+    }
+  ],
+  "commands": {
+    "capture-area": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+Y",
+        "mac": "Command+Shift+Y"
+      },
+      "description": "영역 선택 캡처 시작"
+    }
+  }
 }

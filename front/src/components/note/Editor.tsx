@@ -35,6 +35,12 @@ const schema = BlockNoteSchema.create({
 function Editor(props: EditorProps, ref: ForwardedRef<{ addTimestamp: (_time: number) => void }>) {  const { videoId, initialTimestamp = 0 } = props;
   const [storageKey, setStorageKey] = useState<string>('default-note');
   
+  function formatTime(seconds: number): string {
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  }
+
   // 비디오 ID에 따라 저장 키 업데이트
   useEffect(() => {
     if (videoId) {
@@ -114,6 +120,67 @@ function Editor(props: EditorProps, ref: ForwardedRef<{ addTimestamp: (_time: nu
     initialContent: getSavedContent(),
   });
 
+  // 외부 메시지 수신을 위한 이벤트 리스너 추가
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      // 확장 프로그램에서 온 메시지인지 확인
+      if (event.data.source === "youtube-capture-extension" && 
+          event.data.action === "insertImage") {
+        
+        // 이미지 데이터 확인
+        const {imageData} = event.data;
+        
+        if (imageData && editor) {
+          // 현재 커서 위치에 이미지 삽입
+          const { block } = editor.getTextCursorPosition();
+          
+          // 이미지를 삽입할 새 블록 생성 및 삽입
+          editor.insertBlocks(
+            [
+              {
+                type: 'image',
+                props: { 
+                  url: imageData
+                },
+              },
+            ],
+            block,
+            'after',
+          );
+          
+          // 타임스탬프도 있으면 함께 추가
+          if (event.data.currentTime) {
+            const formattedTime = formatTime(event.data.currentTime);
+            editor.insertBlocks(
+              [
+                {
+                  type: 'paragraph',
+                  content: [
+                    {
+                      type: 'text',
+                      text: `[${formattedTime}] 캡처된 이미지`,
+                      styles: { bold: true, textColor: '#3b82f6' },
+                    },
+                  ],
+                },
+              ],
+              block,
+              'after',
+            );
+          }
+        }
+      }
+    };
+    
+    // 이벤트 리스너 등록
+    window.addEventListener('message', handleMessage);
+    
+    // 컴포넌트 언마운트 시 이벤트 리스너 제거
+    return () => {
+      window.removeEventListener('message', handleMessage);
+    };
+  }, [editor]);
+
   // 컨텐츠 변경 시 자동 저장
   useEffect(() => {
     if (!editor) {
@@ -133,13 +200,6 @@ function Editor(props: EditorProps, ref: ForwardedRef<{ addTimestamp: (_time: nu
       clearTimeout(saveTimeout);
     };
   }, [editor, storageKey]);
-
-  // 시간 포맷팅 함수
-  function formatTime(seconds: number): string {
-    const mins = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
-    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-  }
 
   // 타임스탬프 추가 함수
   function addTimestamp(time: number) {
