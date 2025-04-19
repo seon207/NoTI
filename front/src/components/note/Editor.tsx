@@ -10,11 +10,16 @@ import {
   getDefaultReactSlashMenuItems,
   useCreateBlockNote,
 } from '@blocknote/react';
-import { MdCancel, MdCheckCircle, MdError, MdInfo } from 'react-icons/md';
-// 커스텀 Alert 컴포넌트 임포트
+import { MdCancel, MdCheckCircle, MdError, MdInfo, MdTimer } from 'react-icons/md';
 import { createHighlighter } from 'public/shiki.bundle';
+import { forwardRef, useImperativeHandle, useEffect, useState, ForwardedRef } from 'react';
 import { Alert, AlertType } from './Alert';
-// 상대 경로로 shiki.bundle.js 임포트
+
+// 에디터 props 정의
+interface EditorProps {
+  videoId?: string;
+  initialTimestamp?: number;
+}
 
 // 스키마 생성
 const schema = BlockNoteSchema.create({
@@ -26,7 +31,53 @@ const schema = BlockNoteSchema.create({
   },
 });
 
-export default function Editor() {
+// forwardRef를 사용하여 부모 컴포넌트에서 메서드에 접근할 수 있게 함
+function Editor(props: EditorProps, ref: ForwardedRef<{ addTimestamp: (_time: number) => void }>) {  const { videoId, initialTimestamp = 0 } = props;
+  const [storageKey, setStorageKey] = useState<string>('default-note');
+  
+  // 비디오 ID에 따라 저장 키 업데이트
+  useEffect(() => {
+    if (videoId) {
+      setStorageKey(`note-${videoId}`);
+    }
+  }, [videoId]);
+
+  // 로컬스토리지에서 저장된 내용 불러오기
+  function getSavedContent() {
+    try {
+      const savedContent = localStorage.getItem(storageKey);
+      if (savedContent) {
+        return JSON.parse(savedContent);
+      }
+    } catch (error) {
+      console.error('노트 불러오기 실패:', error);
+    }
+    
+    // 기본 내용
+    return [
+      {
+        type: 'paragraph',
+        content: [
+          {
+            type: 'text',
+            text: '여기에 필기를 시작하세요...',
+            styles: {},
+          },
+        ],
+      },
+      {
+        type: 'paragraph',
+        content: [
+          {
+            type: 'text',
+            text: '슬래시(/) 키를 눌러 다양한 서식을 추가해보세요!',
+            styles: {},
+          },
+        ],
+      },
+    ];
+  }
+
   // 에디터 인스턴스 생성
   const editor = useCreateBlockNote({
     schema,
@@ -60,42 +111,66 @@ export default function Editor() {
         }),
     },
     // 초기 내용 설정
-    initialContent: [
-      {
-        type: 'paragraph',
-        content: [
-          {
-            type: 'text',
-            text: '여기에 필기를 시작하세요...',
-            styles: {},
-          },
-        ],
-      },
-      {
-        type: 'paragraph',
-        content: [
-          {
-            type: 'text',
-            text: '슬래시(/) 키를 눌러 알림 블록을 추가해보세요!',
-            styles: {},
-          },
-        ],
-      },
-      {
-        type: 'codeBlock',
-        props: {
-          language: 'typescript',
-        },
-        content: [
-          {
-            type: 'text',
-            text: '// 코드 예시\nconst x = 3 * 4;\nconsole.log(`결과: $\\{x}`);\n',
-            styles: {},
-          },
-        ],
-      },
-    ],
+    initialContent: getSavedContent(),
   });
+
+  // 컨텐츠 변경 시 자동 저장
+  useEffect(() => {
+    if (!editor) {
+      return undefined; // 명시적으로 반환값 지정
+    }
+
+    const saveTimeout = setTimeout(() => {
+      const content = editor.document;
+      try {
+        localStorage.setItem(storageKey, JSON.stringify(content));
+      } catch (error) {
+        console.error('노트 저장 실패:', error);
+      }
+    }, 1000);
+
+    return function cleanup() {
+      clearTimeout(saveTimeout);
+    };
+  }, [editor, storageKey]);
+
+  // 시간 포맷팅 함수
+  function formatTime(seconds: number): string {
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  }
+
+  // 타임스탬프 추가 함수
+  function addTimestamp(time: number) {
+    if (!editor) return;
+    
+    const formattedTime = formatTime(time);
+    const { block } = editor.getTextCursorPosition();
+    
+    // 현재 커서 위치에 타임스탬프 텍스트 삽입
+    editor.insertBlocks(
+      [
+        {
+          type: 'paragraph',
+          content: [
+            {
+              type: 'text',
+              text: `[${formattedTime}] `,
+              styles: { bold: true, textColor: '#3b82f6' },
+            },
+          ],
+        },
+      ],
+      block,
+      'after',
+    );
+  }
+
+  // useImperativeHandle로 부모 컴포넌트에서 접근 가능한 메서드 정의
+  useImperativeHandle(ref, () => ({
+    addTimestamp
+  }));
 
   // 커스텀 슬래시 메뉴 아이템
   function getCustomSlashMenuItems() {
@@ -183,13 +258,23 @@ export default function Editor() {
         icon: <MdCheckCircle size={18} style={{ color: '#0bc10b' }} />,
         subtext: '성공 알림 블록을 추가합니다.',
       },
+      // 타임스탬프 메뉴 아이템 추가
+      {
+        title: '타임스탬프',
+        onItemClick: () => {
+          addTimestamp(initialTimestamp);
+        },
+        aliases: ['timestamp', '시간', '타임스탬프', 'time'],
+        group: '영상',
+        icon: <MdTimer size={18} style={{ color: '#3b82f6' }} />,
+        subtext: '현재 동영상 시간을 타임스탬프로 추가합니다.',
+      },
     ];
 
     return [...defaultItems, ...alertItems];
   }
 
   // 직접 필터링 함수 구현
-  // filterSuggestionItems가 @blocknote/react에서 export되지 않는 문제 해결
   function filterItems(items: any[], query: string) {
     if (!query) return items;
 
@@ -214,20 +299,45 @@ export default function Editor() {
 
   // 에디터 렌더링
   return (
-    <BlockNoteView editor={editor} slashMenu={false}>
-      {/* 그리드 제안 메뉴 컨트롤러 */}
-      <GridSuggestionMenuController
-        triggerCharacter={':'}
-        columns={8} // 원하는 열 수로 조정
-      />
+    <div className="h-full flex flex-col">
+      <div className="flex-grow overflow-auto">
+        <BlockNoteView editor={editor} slashMenu={false}>
+          {/* 그리드 제안 메뉴 컨트롤러 */}
+          <GridSuggestionMenuController
+            triggerCharacter={':'}
+            columns={8}
+          />
 
-      {/* 슬래시 메뉴 컨트롤러 추가 */}
-      <SuggestionMenuController
-        triggerCharacter="/"
-        getItems={async (query: string) =>
-          filterItems(getCustomSlashMenuItems(), query)
-        }
-      />
-    </BlockNoteView>
+          {/* 슬래시 메뉴 컨트롤러 추가 */}
+          <SuggestionMenuController
+            triggerCharacter="/"
+            getItems={async (query: string) =>
+              filterItems(getCustomSlashMenuItems(), query)
+            }
+          />
+        </BlockNoteView>
+      </div>
+      <div className="p-2 border-t flex justify-between bg-white">
+        <button
+          className="px-3 py-1 bg-gray-200 hover:bg-gray-300 rounded text-sm"
+          onClick={() => {
+            const content = editor.document;
+            localStorage.setItem(storageKey, JSON.stringify(content));
+          }}
+        >
+          저장
+        </button>
+        <button
+          className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm"
+          onClick={() => addTimestamp(initialTimestamp)}
+        >
+          타임스탬프 추가
+        </button>
+      </div>
+    </div>
   );
 }
+
+export default forwardRef<{
+  addTimestamp: (_time: number) => void;
+}, EditorProps>(Editor);

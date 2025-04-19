@@ -18,6 +18,8 @@ const eslintConfig = [
       '.eslintrc.js',
       '*.config.js',
       '*.config.mjs',
+      'front/extension/*',
+      'front/extension/**/*',
     ],
   },
 
@@ -35,6 +37,7 @@ const eslintConfig = [
       'react/require-default-props': 'off',
       '@typescript-eslint/explicit-module-boundary-types': 'off',
       'import/prefer-default-export': 'off',
+      "no-unused-vars": ["error", { "argsIgnorePattern": "^_" }],
       'react/function-component-definition': [
         'error',
         {
