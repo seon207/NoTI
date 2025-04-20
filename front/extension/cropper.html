@@ -1,10 +1,50 @@
 <!DOCTYPE html>
 <html>
 <head>
+  <meta charset="UTF-8">
   <title>이미지 크롭</title>
-  <script src="cropper.js"></script>
+  <style>
+    body, html {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      font-family: Arial, sans-serif;
+      background-color: #f0f0f0;
+    }
+    .container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+    }
+    #status {
+      margin-bottom: 10px;
+      padding: 10px;
+      background-color: #333;
+      color: white;
+      border-radius: 4px;
+      width: 80%;
+      text-align: center;
+    }
+    canvas {
+      border: 1px solid #ccc;
+      margin: 10px 0;
+      max-width: 90%;
+    }
+    #preview {
+      max-width: 90%;
+      margin-top: 20px;
+      border: 1px dashed #999;
+    }
+  </style>
 </head>
 <body>
-  <canvas id="canvas" style="display:none"></canvas>
+  <div class="container">
+    <div id="status">이미지 처리 중...</div>
+    <canvas id="canvas"></canvas>
+    <img id="preview" style="display: none;" alt="크롭된 이미지 미리보기">
+  </div>
+  <script src="cropper.js"></script>
 </body>
 </html>
