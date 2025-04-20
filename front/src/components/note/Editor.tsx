@@ -10,9 +10,12 @@ import {
   getDefaultReactSlashMenuItems,
   useCreateBlockNote,
 } from '@blocknote/react';
-import { MdCancel, MdCheckCircle, MdError, MdInfo, MdTimer } from 'react-icons/md';
+import { MdCancel, MdCheckCircle, MdError, MdInfo, MdTimer, MdAutoFixHigh } from 'react-icons/md';
 import { createHighlighter } from 'public/shiki.bundle';
-import { forwardRef, useImperativeHandle, useEffect, useState, ForwardedRef } from 'react';
+import { forwardRef, useImperativeHandle, useEffect, useState, useCallback, ForwardedRef } from 'react';
+import { AISuggestion } from '@/types/aiType';
+import { generateAISuggestion, getBlockText } from '@/service/aiSuggestionService';
+import AISuggestionButton from '@/components/ai/AISuggestionButton';
 import { Alert, AlertType } from './Alert';
 
 // 에디터 props 정의
@@ -32,8 +35,10 @@ const schema = BlockNoteSchema.create({
 });
 
 // forwardRef를 사용하여 부모 컴포넌트에서 메서드에 접근할 수 있게 함
-function Editor(props: EditorProps, ref: ForwardedRef<{ addTimestamp: (_time: number) => void }>) {  const { videoId, initialTimestamp = 0 } = props;
+function Editor(props: EditorProps, ref: ForwardedRef<{ addTimestamp: (_time: number) => void }>) {
+  const { videoId, initialTimestamp = 0 } = props;
   const [storageKey, setStorageKey] = useState<string>('default-note');
+  const [aiSuggestions, setAiSuggestions] = useState<Record<string, AISuggestion>>({});
   
   function formatTime(seconds: number): string {
     const mins = Math.floor(seconds / 60);
@@ -176,7 +181,7 @@ function Editor(props: EditorProps, ref: ForwardedRef<{ addTimestamp: (_time: nu
           event.data.action === "insertImage") {
         
         // 이미지 데이터 확인
-        const {imageData} = event.data;
+        const { imageData } = event.data;
         
         if (imageData && editor) {
           // 현재 커서 위치에 이미지 삽입
@@ -229,6 +234,8 @@ function Editor(props: EditorProps, ref: ForwardedRef<{ addTimestamp: (_time: nu
     };
   }, [editor]);
 
+  
+
   // 컨텐츠 변경 시 자동 저장
   useEffect(() => {
     if (!editor) {
@@ -250,7 +257,7 @@ function Editor(props: EditorProps, ref: ForwardedRef<{ addTimestamp: (_time: nu
   }, [editor, storageKey]);
 
   // 타임스탬프 추가 함수
-  function addTimestamp(time: number) {
+  const addTimestamp = useCallback((time: number) => {
     if (!editor) return;
     
     const formattedTime = formatTime(time);
@@ -273,19 +280,115 @@ function Editor(props: EditorProps, ref: ForwardedRef<{ addTimestamp: (_time: nu
       block,
       'after',
     );
-  }
+  }, [editor]);
+
+  // AI 제안 요청 함수
+  const requestAISuggestion = useCallback(async (blockId: string) => {
+    // 이미 제안을 로딩 중이거나 표시 중인 경우 무시
+    if (aiSuggestions[blockId] && (aiSuggestions[blockId].isLoading || aiSuggestions[blockId].isVisible)) {
+      return;
+    }
+
+    // 블록 내용 가져오기
+    const block = editor.getBlock(blockId);
+    if (!block) return;
+
+    const blockText = getBlockText(block);
+    if (!blockText.trim()) return; // 빈 텍스트인 경우 무시
+
+    // 로딩 상태 설정
+    setAiSuggestions((prev) => ({
+      ...prev,
+      [blockId]: {
+        blockId,
+        originalText: blockText,
+        suggestedText: '',
+        isLoading: true,
+        isVisible: false,
+      },
+    }));
+
+    try {
+      // AI 제안 생성 (실제로는 API 호출)
+      const suggestion = await generateAISuggestion(blockText);
+      
+      // 제안 저장 및 표시
+      setAiSuggestions((prev) => ({
+        ...prev,
+        [blockId]: {
+          ...prev[blockId],
+          suggestedText: suggestion,
+          isLoading: false,
+          isVisible: true,
+        },
+      }));
+    } catch (error) {
+      console.error('AI 제안 생성 실패:', error);
+      
+      // 오류 상태 설정
+      setAiSuggestions((prev) => ({
+        ...prev,
+        [blockId]: {
+          ...prev[blockId],
+          isLoading: false,
+          isVisible: false,
+        },
+      }));
+    }
+  }, [editor, aiSuggestions]);
+
+  // AI 제안 적용 함수
+  const applySuggestion = useCallback((blockId: string) => {
+    const suggestion = aiSuggestions[blockId];
+    if (!suggestion || !editor) return;
+
+    // 블록 가져오기
+    const block = editor.getBlock(blockId);
+    if (!block) return;
+
+    // 제안된 텍스트로 블록 내용 업데이트
+    editor.updateBlock(block, {
+      content: [
+        {
+          type: 'text',
+          text: suggestion.suggestedText,
+          styles: {},
+        },
+      ],
+    });
+
+    // 제안 숨기기
+    setAiSuggestions((prev) => ({
+      ...prev,
+      [blockId]: {
+        ...prev[blockId],
+        isVisible: false,
+      },
+    }));
+  }, [editor, aiSuggestions]);
+
+  // AI 제안 거부 함수
+  const dismissSuggestion = useCallback((blockId: string) => {
+    setAiSuggestions((prev) => ({
+      ...prev,
+      [blockId]: {
+        ...prev[blockId],
+        isVisible: false,
+      },
+    }));
+  }, []);
 
   // useImperativeHandle로 부모 컴포넌트에서 접근 가능한 메서드 정의
   useImperativeHandle(ref, () => ({
     addTimestamp
-  }));
+  }), [addTimestamp]);
 
   // 커스텀 슬래시 메뉴 아이템
   function getCustomSlashMenuItems() {
     const defaultItems = getDefaultReactSlashMenuItems(editor);
 
     // Alert 아이템 추가
-    const alertItems = [
+    const customItems = [
       {
         title: '경고 알림',
         onItemClick: () => {
@@ -377,9 +480,23 @@ function Editor(props: EditorProps, ref: ForwardedRef<{ addTimestamp: (_time: nu
         icon: <MdTimer size={18} style={{ color: '#3b82f6' }} />,
         subtext: '현재 동영상 시간을 타임스탬프로 추가합니다.',
       },
+      // AI 제안 메뉴 아이템 추가
+      {
+        title: 'AI 제안',
+        onItemClick: () => {
+          const { block } = editor.getTextCursorPosition();
+          if (block) {
+            requestAISuggestion(block.id);
+          }
+        },
+        aliases: ['ai', '인공지능', '제안', 'suggestion'],
+        group: 'AI',
+        icon: <MdAutoFixHigh size={18} style={{ color: '#6366f1' }} />,
+        subtext: '현재 블록에 대한 AI 제안을 요청합니다.',
+      },
     ];
 
-    return [...defaultItems, ...alertItems];
+    return [...defaultItems, ...customItems];
   }
 
   // 직접 필터링 함수 구현
@@ -405,11 +522,37 @@ function Editor(props: EditorProps, ref: ForwardedRef<{ addTimestamp: (_time: nu
     });
   }
 
+  // BlockNote 커스텀 렌더러 함수
+  function CustomBlockComponent(prop: any) {
+    const { block } = prop;
+    const suggestion = aiSuggestions[block.id];
+    
+    return (
+      <div className="relative group">
+        {prop.children}
+        <AISuggestionButton
+          blockId={block.id}
+          blockType={block.type}
+          requestAISuggestion={requestAISuggestion}
+          suggestion={suggestion}
+          applySuggestion={applySuggestion}
+          dismissSuggestion={dismissSuggestion}
+        />
+      </div>
+    );
+  }
+  CustomBlockComponent.displayName = 'CustomBlockComponent';
+
   // 에디터 렌더링
   return (
     <div className="h-full flex flex-col">
       <div className="flex-grow overflow-auto">
-        <BlockNoteView editor={editor} slashMenu={false}>
+      <BlockNoteView 
+        editor={editor} 
+        slashMenu={false}
+        className="ai-enabled-editor"
+      >
+          
           {/* 그리드 제안 메뉴 컨트롤러 */}
           <GridSuggestionMenuController
             triggerCharacter={':'}
@@ -427,6 +570,7 @@ function Editor(props: EditorProps, ref: ForwardedRef<{ addTimestamp: (_time: nu
       </div>
       <div className="p-2 border-t flex justify-between bg-white">
         <button
+          type="button"
           className="px-3 py-1 bg-gray-200 hover:bg-gray-300 rounded text-sm"
           onClick={() => {
             const content = editor.document;
@@ -435,12 +579,27 @@ function Editor(props: EditorProps, ref: ForwardedRef<{ addTimestamp: (_time: nu
         >
           저장
         </button>
-        <button
-          className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm"
-          onClick={() => addTimestamp(initialTimestamp)}
-        >
-          타임스탬프 추가
-        </button>
+        <div className="flex space-x-2">
+          <button
+            type="button"
+            className="px-3 py-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded text-sm flex items-center"
+            onClick={() => {
+              const { block } = editor.getTextCursorPosition();
+              if (block) {
+                requestAISuggestion(block.id);
+              }
+            }}
+          >
+            <MdAutoFixHigh className="mr-1" /> AI 제안
+          </button>
+          <button
+            type="button"
+            className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm"
+            onClick={() => addTimestamp(initialTimestamp)}
+          >
+            타임스탬프 추가
+          </button>
+        </div>
       </div>
     </div>
   );
