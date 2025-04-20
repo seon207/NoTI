@@ -118,6 +118,54 @@ function Editor(props: EditorProps, ref: ForwardedRef<{ addTimestamp: (_time: nu
     },
     // 초기 내용 설정
     initialContent: getSavedContent(),
+    // 붙여넣기 핸들러 추가
+    pasteHandler: ({ event, editor: pasteEditor, defaultPasteHandler }) => {
+      console.log('붙여넣기 이벤트 감지:', event.clipboardData?.types);
+      
+      // 클립보드에 이미지가 있는지 확인
+      const items = event.clipboardData?.items;
+      if (items) {
+        for (let i = 0; i < items.length; i += 1) {
+          const item = items[i];
+          
+          // 이미지 타입인지 확인
+          if (item.type.startsWith('image/')) {
+            console.log('이미지 붙여넣기 감지:', item.type);
+            
+            // 클립보드에서 이미지 파일 가져오기
+            const file = item.getAsFile();
+            if (file) {
+              // 이미지를 데이터 URL로 변환
+              const reader = new FileReader();
+              reader.onload = () => {
+                const dataUrl = reader.result as string;
+                
+                // 현재 커서 위치에 이미지 삽입
+                const { block } = pasteEditor.getTextCursorPosition();
+                pasteEditor.insertBlocks(
+                  [
+                    {
+                      type: 'image',
+                      props: { url: dataUrl },
+                    },
+                  ],
+                  block,
+                  'after',
+                );
+                
+                console.log('이미지가 에디터에 삽입되었습니다.');
+              };
+              
+              reader.readAsDataURL(file);
+              return true; // 이벤트 처리 완료
+            }
+          }
+        }
+      }
+      
+      // 이미지가 아닌 경우 기본 붙여넣기 동작 수행
+      return defaultPasteHandler();
+    },
   });
 
   // 외부 메시지 수신을 위한 이벤트 리스너 추가

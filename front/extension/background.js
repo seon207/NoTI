@@ -141,61 +141,21 @@ function captureYoutubeVideo(tabId) {
       console.log('유튜브 비디오 캡처 시작');
       
       // 다양한 선택자로 유튜브 비디오 요소 찾기 시도
-      let videoElement = null;
-      
-      // 일반 유튜브 플레이어
-      if (!videoElement) {
-        videoElement = document.querySelector('.html5-video-container video');
-        if (videoElement) console.log('일반 유튜브 플레이어 찾음');
-      }
-      
-      // iframe 내부의 유튜브 플레이어 찾기 시도
-      if (!videoElement) {
-        const iframes = document.querySelectorAll('iframe');
-        for (const iframe of iframes) {
-          try {
-            if (iframe.src.includes('youtube.com') || iframe.src.includes('youtu.be')) {
-              console.log('유튜브 iframe 찾음:', iframe);
-              
-              // iframe 위치 정보 사용
-              const rect = iframe.getBoundingClientRect();
-              
-              // iframe 정보 반환
-              chrome.runtime.sendMessage({
-                action: 'areaSelected',
-                area: {
-                  x: rect.left,
-                  y: rect.top,
-                  width: rect.width,
-                  height: rect.height,
-                  devicePixelRatio: window.devicePixelRatio || 1,
-                  isIframe: true
-                }
-              });
-              
-              return; // 메시지 전송 후 종료
-            }
-          } catch (e) {
-            console.error('iframe 확인 중 오류:', e);
-          }
-        }
-      }
-      
-      // 직접 비디오 요소 찾기 (최후의 수단)
-      if (!videoElement) {
-        videoElement = document.querySelector('video');
-        if (videoElement) console.log('일반 비디오 요소 찾음');
-      }
+      const videoElement = 
+        document.querySelector('.html5-video-container video') || // 표준 유튜브 플레이어
+        document.querySelector('ytd-watch-flexy video') ||       // 새로운 유튜브 UI
+        document.querySelector('iframe[src*="youtube.com"]') ||  // iframe 내의 유튜브 
+        document.querySelector('video');                         // 일반 비디오 태그
       
       if (!videoElement) {
-        console.error('비디오 요소를 찾을 수 없습니다');
+        console.error('페이지에서 비디오 요소를 찾을 수 없습니다.');
         alert('페이지에서 비디오 요소를 찾을 수 없습니다.');
         return;
       }
       
       // 비디오 요소의 위치와 크기 계산
       const rect = videoElement.getBoundingClientRect();
-      console.log('비디오 요소 위치:', rect);
+      console.log('비디오 요소 찾음:', rect);
       
       // 좌표 전송
       chrome.runtime.sendMessage({
@@ -212,7 +172,23 @@ function captureYoutubeVideo(tabId) {
   });
 }
 
-// 선택된 영역 캡처 함수
+// 메시지 이벤트 처리
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  console.log('메시지 수신:', message);
+  
+  if (message.action === 'startAreaCapture') {
+    startAreaCapture(message.tabId);
+  } 
+  else if (message.action === 'captureYoutubeVideo') {
+    captureYoutubeVideo(message.tabId);
+  }
+  else if (message.action === 'areaSelected') {
+    captureSelectedArea(sender.tab.id, message.area);
+  }
+  
+  return true; // 비동기 응답을 위해 true 반환
+});
+
 // 선택된 영역 캡처 함수
 async function captureSelectedArea(tabId, area) {
   console.log('캡처 영역:', area);
@@ -221,7 +197,7 @@ async function captureSelectedArea(tabId, area) {
     const dataUrl = await chrome.tabs.captureVisibleTab(null, { format: 'png' });
     console.log('화면 캡처 완료');
     
-    // 동일한 탭에서 이미지 크롭 및 복사 실행
+    // 원본 탭에서 이미지 크롭 및 클립보드 복사 실행
     chrome.scripting.executeScript({
       target: { tabId },
       function: (imageData, captureArea) => {
@@ -253,7 +229,7 @@ async function captureSelectedArea(tabId, area) {
             0, 0, canvas.width, canvas.height
           );
           
-          // 크롭된 이미지를 blob으로 변환
+          // 크롭된 이미지를 blob으로 변환하여 클립보드에 복사
           canvas.toBlob(async (blob) => {
             try {
               // 클립보드에 복사
@@ -307,20 +283,3 @@ async function captureSelectedArea(tabId, area) {
     alert('캡처 과정에서 오류가 발생했습니다: ' + error.message);
   }
 }
-
-// 메시지 이벤트 처리
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-console.log('메시지 수신:', message);
-
-if (message.action === 'startAreaCapture') {
-  startAreaCapture(message.tabId);
-} 
-else if (message.action === 'captureYoutubeVideo') {
-  captureYoutubeVideo(message.tabId);
-}
-else if (message.action === 'areaSelected') {
-  captureSelectedArea(sender.tab.id, message.area);
-}
-
-return true; // 비동기 응답을 위해 true 반환
-});
