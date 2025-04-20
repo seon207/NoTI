@@ -125,7 +125,7 @@ function Editor(props: EditorProps, ref: ForwardedRef<{ addTimestamp: (_time: nu
       // 클립보드에 이미지가 있는지 확인
       const items = event.clipboardData?.items;
       if (items) {
-        for (let i = 0; i < items.length; i += 1) {
+        for (let i = 0; i < items.length; i++) {
           const item = items[i];
           
           // 이미지 타입인지 확인

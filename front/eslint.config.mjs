@@ -32,6 +32,7 @@ const eslintConfig = [
 
     // 모든 규칙들을 여기로 이동
     rules: {
+      "no-plusplus": "off",
       'react/react-in-jsx-scope': 'off',
       'react/jsx-props-no-spreading': 'off',
       'react/require-default-props': 'off',
