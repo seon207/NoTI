@@ -16,7 +16,8 @@ import {
   MdError,
   MdInfo,
   MdTimer,
-  MdAutoFixHigh,
+  MdCamera,
+  MdVideocam,
 } from 'react-icons/md';
 import { createHighlighter } from 'public/shiki.bundle';
 import {
@@ -27,12 +28,6 @@ import {
   useCallback,
   ForwardedRef,
 } from 'react';
-import { AISuggestion } from '@/types/aiType';
-import {
-  generateAISuggestion,
-  getBlockText,
-} from '@/service/aiSuggestionService';
-import AISuggestionButton from '@/components/ai/AISuggestionButton';
 import { Alert, AlertType } from './Alert';
 
 // 에디터 props 정의
@@ -59,13 +54,11 @@ function Editor(
 ) {
   const { videoId, initialTimestamp = 0, title = '새 노트' } = props;
   const [storageKey, setStorageKey] = useState<string>('default-note');
-  const [aiSuggestions, setAiSuggestions] = useState<
-    Record<string, AISuggestion>
-  >({});
   const [noteTitle, setNoteTitle] = useState<string>(title || '새 노트');
   const [isTitleDefault, setIsTitleDefault] = useState<boolean>(
     title === '새 노트',
   );
+  const [isExtensionAvailable, setIsExtensionAvailable] = useState<boolean>(false);
 
   function formatTime(seconds: number): string {
     const mins = Math.floor(seconds / 60);
@@ -79,6 +72,43 @@ function Editor(
       setStorageKey(`note-${videoId}`);
     }
   }, [videoId]);
+
+  // 익스텐션 존재 여부 확인
+  useEffect(() => {
+    // 익스텐션이 설치되어 있는지 확인하는 메시지 보내기
+    window.postMessage(
+      {
+        source: 'youtube-note-app',
+        action: 'checkExtension',
+      },
+      '*'
+    );
+
+    // 응답 이벤트 리스닝
+    const checkExtensionListener = (event: MessageEvent) => {
+      if (
+        event.data.source === 'youtube-capture-extension' &&
+        event.data.action === 'extensionAvailable'
+      ) {
+        setIsExtensionAvailable(true);
+        console.log('익스텐션이 감지되었습니다.');
+      }
+    };
+
+    window.addEventListener('message', checkExtensionListener);
+
+    // 3초 후에 타임아웃 체크 (응답이 없으면 익스텐션이 없는 것으로 간주)
+    const timeoutId = setTimeout(() => {
+      if (!isExtensionAvailable) {
+        console.log('익스텐션을 찾을 수 없습니다.');
+      }
+    }, 3000);
+
+    return () => {
+      window.removeEventListener('message', checkExtensionListener);
+      clearTimeout(timeoutId);
+    };
+  }, []);
 
   // 로컬스토리지에서 저장된 내용 불러오기
   function getSavedContent() {
@@ -346,110 +376,45 @@ function Editor(
     [editor],
   );
 
-  // AI 제안 요청 함수
-  const requestAISuggestion = useCallback(
-    async (blockId: string) => {
-      // 이미 제안을 로딩 중이거나 표시 중인 경우 무시
-      if (
-        aiSuggestions[blockId] &&
-        (aiSuggestions[blockId].isLoading || aiSuggestions[blockId].isVisible)
-      ) {
-        return;
-      }
+  // 영역 캡처 요청 함수
+  const requestAreaCapture = useCallback(() => {
+    if (!isExtensionAvailable) {
+      // 익스텐션이 없는 경우 알림
+      alert('영상 캡처 확장 프로그램이 설치되어 있지 않습니다. 확장 프로그램을 설치해주세요.');
+      return;
+    }
 
-      // 블록 내용 가져오기
-      const block = editor.getBlock(blockId);
-      if (!block) return;
-
-      const blockText = getBlockText(block);
-      if (!blockText.trim()) return; // 빈 텍스트인 경우 무시
-
-      // 로딩 상태 설정
-      setAiSuggestions((prev) => ({
-        ...prev,
-        [blockId]: {
-          blockId,
-          originalText: blockText,
-          suggestedText: '',
-          isLoading: true,
-          isVisible: false,
-        },
-      }));
-
-      try {
-        // AI 제안 생성 (실제로는 API 호출)
-        const suggestion = await generateAISuggestion(blockText);
-
-        // 제안 저장 및 표시
-        setAiSuggestions((prev) => ({
-          ...prev,
-          [blockId]: {
-            ...prev[blockId],
-            suggestedText: suggestion,
-            isLoading: false,
-            isVisible: true,
-          },
-        }));
-      } catch (error) {
-        console.error('AI 제안 생성 실패:', error);
-
-        // 오류 상태 설정
-        setAiSuggestions((prev) => ({
-          ...prev,
-          [blockId]: {
-            ...prev[blockId],
-            isLoading: false,
-            isVisible: false,
-          },
-        }));
-      }
-    },
-    [editor, aiSuggestions],
-  );
-
-  // AI 제안 적용 함수
-  const applySuggestion = useCallback(
-    (blockId: string) => {
-      const suggestion = aiSuggestions[blockId];
-      if (!suggestion || !editor) return;
-
-      // 블록 가져오기
-      const block = editor.getBlock(blockId);
-      if (!block) return;
-
-      // 제안된 텍스트로 블록 내용 업데이트
-      editor.updateBlock(block, {
-        content: [
-          {
-            type: 'text',
-            text: suggestion.suggestedText,
-            styles: {},
-          },
-        ],
-      });
-
-      // 제안 숨기기
-      setAiSuggestions((prev) => ({
-        ...prev,
-        [blockId]: {
-          ...prev[blockId],
-          isVisible: false,
-        },
-      }));
-    },
-    [editor, aiSuggestions],
-  );
-
-  // AI 제안 거부 함수
-  const dismissSuggestion = useCallback((blockId: string) => {
-    setAiSuggestions((prev) => ({
-      ...prev,
-      [blockId]: {
-        ...prev[blockId],
-        isVisible: false,
+    // 익스텐션에 영역 캡처 요청 메시지 전송
+    window.postMessage(
+      {
+        source: 'youtube-note-app',
+        action: 'requestAreaCapture',
       },
-    }));
-  }, []);
+      '*'
+    );
+
+    console.log('영역 캡처 요청 메시지 전송');
+  }, [isExtensionAvailable]);
+
+  // 영상 전체 캡처 요청 함수
+  const requestVideoCapture = useCallback(() => {
+    if (!isExtensionAvailable) {
+      // 익스텐션이 없는 경우 알림
+      alert('영상 캡처 확장 프로그램이 설치되어 있지 않습니다. 확장 프로그램을 설치해주세요.');
+      return;
+    }
+
+    // 익스텐션에 영상 전체 캡처 요청 메시지 전송
+    window.postMessage(
+      {
+        source: 'youtube-note-app',
+        action: 'requestVideoCapture',
+      },
+      '*'
+    );
+
+    console.log('영상 전체 캡처 요청 메시지 전송');
+  }, [isExtensionAvailable]);
 
   // 제목 클릭/포커스 시 기본 텍스트 초기화
   const handleTitleFocus = useCallback(() => {
@@ -565,19 +530,23 @@ function Editor(
         icon: <MdTimer size={18} style={{ color: '#3b82f6' }} />,
         subtext: '현재 동영상 시간을 타임스탬프로 추가합니다.',
       },
-      // AI 제안 메뉴 아이템 추가
+      // 영역 캡처 메뉴 아이템 추가
       {
-        title: 'AI 제안',
-        onItemClick: () => {
-          const { block } = editor.getTextCursorPosition();
-          if (block) {
-            requestAISuggestion(block.id);
-          }
-        },
-        aliases: ['ai', '인공지능', '제안', 'suggestion'],
-        group: 'AI',
-        icon: <MdAutoFixHigh size={18} style={{ color: '#6366f1' }} />,
-        subtext: '현재 블록에 대한 AI 제안을 요청합니다.',
+        title: '영역 캡처',
+        onItemClick: requestAreaCapture,
+        aliases: ['capture', '캡처', '영역', 'area'],
+        group: '캡처',
+        icon: <MdCamera size={18} style={{ color: '#f59e0b' }} />,
+        subtext: '화면의 원하는 영역을 캡처합니다.',
+      },
+      // 영상 전체 캡처 메뉴 아이템 추가
+      {
+        title: '영상 전체 캡처',
+        onItemClick: requestVideoCapture,
+        aliases: ['video', '영상', '전체', 'full'],
+        group: '캡처',
+        icon: <MdVideocam size={18} style={{ color: '#ef4444' }} />,
+        subtext: '현재 영상 전체를 캡처합니다.',
       },
     ];
 
@@ -609,20 +578,9 @@ function Editor(
 
   // BlockNote 커스텀 렌더러 함수
   function CustomBlockComponent(prop: any) {
-    const { block } = prop;
-    const suggestion = aiSuggestions[block.id];
-
     return (
       <div className="relative group">
         {prop.children}
-        <AISuggestionButton
-          blockId={block.id}
-          blockType={block.type}
-          requestAISuggestion={requestAISuggestion}
-          suggestion={suggestion}
-          applySuggestion={applySuggestion}
-          dismissSuggestion={dismissSuggestion}
-        />
       </div>
     );
   }
@@ -649,7 +607,7 @@ function Editor(
         <BlockNoteView
           editor={editor}
           slashMenu={false}
-          className="ai-enabled-editor"
+          className="capture-enabled-editor"
         >
           {/* 그리드 제안 메뉴 컨트롤러 */}
           <GridSuggestionMenuController triggerCharacter={':'} columns={8} />
@@ -679,15 +637,19 @@ function Editor(
         <div className="flex space-x-3">
           <button
             type="button"
-            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded text-sm font-medium flex items-center transition-colors duration-200"
-            onClick={() => {
-              const { block } = editor.getTextCursorPosition();
-              if (block) {
-                requestAISuggestion(block.id);
-              }
-            }}
+            className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded text-sm font-medium flex items-center transition-colors duration-200"
+            onClick={requestAreaCapture}
+            title="화면의 원하는 영역을 캡처합니다"
           >
-            <MdAutoFixHigh className="mr-2" /> AI 제안
+            <MdCamera className="mr-2" /> 영역 캡처
+          </button>
+          <button
+            type="button"
+            className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded text-sm font-medium flex items-center transition-colors duration-200"
+            onClick={requestVideoCapture}
+            title="현재 영상 전체를 캡처합니다"
+          >
+            <MdVideocam className="mr-2" /> 영상 전체 캡처
           </button>
           <button
             type="button"

@@ -582,7 +582,7 @@ function detectVideoInPage(tabId, url) {
   });
 }
 
-// 선택된 영역 캡처 함수
+// captureSelectedArea 함수 내부에 다음 코드만 추가
 async function captureSelectedArea(tabId, area) {
   console.log('캡처 영역:', area);
   try {
@@ -627,6 +627,30 @@ async function captureSelectedArea(tabId, area) {
             canvas.height,
           );
 
+          // 현재 비디오 시간 가져오기
+          let currentTime = 0;
+          const videoElements = document.querySelectorAll('video');
+          if (videoElements.length > 0) {
+            currentTime = videoElements[0].currentTime;
+          }
+
+          // 웹 앱 통신 코드 추가 (새로 추가된 부분)
+          try {
+            window.postMessage(
+              {
+                source: 'youtube-capture-extension',
+                action: 'insertImage',
+                imageData: canvas.toDataURL('image/png'),
+                currentTime: currentTime
+              },
+              '*'
+            );
+          } catch (e) {
+            console.error('웹 앱 통신 오류:', e);
+          }
+          // 웹 앱 통신 코드 끝
+
+          // 기존 코드는 그대로 유지
           // 크롭된 이미지를 blob으로 변환하여 클립보드에 복사
           canvas.toBlob(
             async (blob) => {
@@ -686,6 +710,34 @@ async function captureSelectedArea(tabId, area) {
     alert('캡처 과정에서 오류가 발생했습니다: ' + error.message);
   }
 }
+
+// 기존 메시지 이벤트 핸들러에 다음 조건만 추가
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  console.log('메시지 수신:', message);
+
+  if (message.action === 'detectVideo') {
+    detectVideoInPage(message.tabId, message.url);
+  } else if (message.action === 'startAreaCapture') {
+    startAreaCapture(message.tabId);
+  } else if (message.action === 'captureVideo') {
+    captureVideoInPage(message.tabId);
+  } else if (message.action === 'areaSelected') {
+    captureSelectedArea(sender.tab.id, message.area);
+  } else if (message.action === 'openVideoInApp') {
+    openVideoInApp(message);
+  }
+  // 다음 조건 추가
+  else if (message.action === 'testCommunication') {
+    // 웹 앱과의 통신 테스트
+    chrome.tabs.sendMessage(sender.tab.id, {
+      action: 'communicationResult',
+      success: true
+    });
+    sendResponse({ success: true, message: '통신 테스트 성공' });
+  }
+
+  return true; // 비동기 응답을 위해 true 반환
+});
 
 // 메시지 이벤트 처리
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
