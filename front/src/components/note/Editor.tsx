@@ -594,6 +594,12 @@ function Editor(props: EditorProps, ref: ForwardedRef<{ addTimestamp: (_time: nu
           </button>
           <button
             type="button"
+            className="px-3 py-1 border-1 text-black rounded text-sm flex items-center cursor-pointer"
+          >
+            Notion
+          </button>
+          <button
+            type="button"
             className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm"
             onClick={() => addTimestamp(initialTimestamp)}
           >
