@@ -1,60 +1,76 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ko">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>유튜브 영상 영역 캡처</title>
-  <style>
-    body {
-      width: 300px;
-      padding: 15px;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    }
-    h3 {
-      margin-top: 0;
-      color: #1a73e8;
-    }
-    .button-container {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-    button {
-      padding: 8px 12px;
-      border: none;
-      border-radius: 4px;
-      background-color: #1a73e8;
-      color: white;
-      font-weight: 500;
-      cursor: pointer;
-      transition: background-color 0.2s;
-    }
-    button:hover {
-      background-color: #0d62c7;
-    }
-    .shortcut {
-      margin-top: 12px;
-      font-size: 12px;
-      color: #666;
-    }
-    .shortcut kbd {
-      background-color: #f7f7f7;
-      border: 1px solid #ccc;
-      border-radius: 3px;
-      padding: 2px 4px;
-      box-shadow: 0 1px 1px rgba(0, 0, 0, 0.2);
-    }
-  </style>
-</head>
-<body>
-  <h3>유튜브 영상 영역 캡처</h3>
-  <div class="button-container">
-    <button id="captureArea">영역 선택 캡처</button>
-    <button id="captureYoutube">유튜브 영상 자동 캡처</button>
-  </div>
-  <div class="shortcut">
-    <p>단축키: <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Y</kbd></p>
-  </div>
-  <script src="popup.js"></script>
-</body>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>영상 캡처 및 필기</title>
+    <style>
+      body {
+        width: 300px;
+        padding: 15px;
+        font-family:
+          -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      }
+      h3 {
+        margin-top: 0;
+        color: #1a73e8;
+      }
+      .button-container {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      button {
+        padding: 8px 12px;
+        border: none;
+        border-radius: 4px;
+        background-color: #1a73e8;
+        color: white;
+        font-weight: 500;
+        cursor: pointer;
+        transition: background-color 0.2s;
+      }
+      button:hover {
+        background-color: #0d62c7;
+      }
+      .section {
+        margin-top: 16px;
+        border-top: 1px solid #eee;
+        padding-top: 16px;
+      }
+      .shortcut {
+        margin-top: 12px;
+        font-size: 12px;
+        color: #666;
+      }
+      .shortcut kbd {
+        background-color: #f7f7f7;
+        border: 1px solid #ccc;
+        border-radius: 3px;
+        padding: 2px 4px;
+        box-shadow: 0 1px 1px rgba(0, 0, 0, 0.2);
+      }
+    </style>
+  </head>
+  <body>
+    <h3>영상 캡처 및 필기</h3>
+
+    <div class="button-container">
+      <button id="captureArea">영역 선택 캡처</button>
+      <button id="captureYoutube">영상 자동 캡처</button>
+    </div>
+
+    <div class="section">
+      <div class="button-container">
+        <button id="detectVideo">현재 페이지 영상 감지</button>
+        <button id="openInApp">영상으로 필기 시작하기</button>
+      </div>
+    </div>
+
+    <div class="shortcut">
+      <p>단축키: <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Y</kbd></p>
+    </div>
+
+    <script src="popup.js"></script>
+  </body>
 </html>

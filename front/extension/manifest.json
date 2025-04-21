@@ -11,10 +11,7 @@
     "storage",
     "tabs"
   ],
-  "host_permissions": [
-    "http://localhost:3000/*",
-    "https://www.youtube.com/*"
-  ],
+  "host_permissions": ["http://localhost:3000/*", "<all_urls>"],
   "web_accessible_resources": [
     {
       "resources": ["cropper.html", "cropper.js"],
