@@ -17,7 +17,6 @@ import {
   MdInfo,
   MdTimer,
   MdCamera,
-  MdVideocam,
 } from 'react-icons/md';
 import { createHighlighter } from 'public/shiki.bundle';
 import {
@@ -396,26 +395,6 @@ function Editor(
     console.log('영역 캡처 요청 메시지 전송');
   }, [isExtensionAvailable]);
 
-  // 영상 전체 캡처 요청 함수
-  const requestVideoCapture = useCallback(() => {
-    if (!isExtensionAvailable) {
-      // 익스텐션이 없는 경우 알림
-      alert('영상 캡처 확장 프로그램이 설치되어 있지 않습니다. 확장 프로그램을 설치해주세요.');
-      return;
-    }
-
-    // 익스텐션에 영상 전체 캡처 요청 메시지 전송
-    window.postMessage(
-      {
-        source: 'youtube-note-app',
-        action: 'requestVideoCapture',
-      },
-      '*'
-    );
-
-    console.log('영상 전체 캡처 요청 메시지 전송');
-  }, [isExtensionAvailable]);
-
   // 제목 클릭/포커스 시 기본 텍스트 초기화
   const handleTitleFocus = useCallback(() => {
     if (isTitleDefault) {
@@ -539,15 +518,6 @@ function Editor(
         icon: <MdCamera size={18} style={{ color: '#f59e0b' }} />,
         subtext: '화면의 원하는 영역을 캡처합니다.',
       },
-      // 영상 전체 캡처 메뉴 아이템 추가
-      {
-        title: '영상 전체 캡처',
-        onItemClick: requestVideoCapture,
-        aliases: ['video', '영상', '전체', 'full'],
-        group: '캡처',
-        icon: <MdVideocam size={18} style={{ color: '#ef4444' }} />,
-        subtext: '현재 영상 전체를 캡처합니다.',
-      },
     ];
 
     return [...defaultItems, ...customItems];
@@ -642,14 +612,6 @@ function Editor(
             title="화면의 원하는 영역을 캡처합니다"
           >
             <MdCamera className="mr-2" /> 영역 캡처
-          </button>
-          <button
-            type="button"
-            className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded text-sm font-medium flex items-center transition-colors duration-200"
-            onClick={requestVideoCapture}
-            title="현재 영상 전체를 캡처합니다"
-          >
-            <MdVideocam className="mr-2" /> 영상 전체 캡처
           </button>
           <button
             type="button"

@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "유튜브 영상 영역 캡처",
+  "name": "NOTI",
   "version": "1.0",
-  "description": "브라우저에서 영역을 선택하여 캡처하는 확장 프로그램",
+  "description": "당신의 강의 필기 메이트, 노티입니다.",
   "permissions": [
     "activeTab",
     "scripting",

@@ -6,8 +6,8 @@
     <title>영상 캡처 및 필기</title>
     <style>
       body {
-        width: 300px;
-        padding: 15px;
+        width: 280px;
+        padding: 16px;
         font-family:
           -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       }
@@ -21,7 +21,7 @@
         gap: 8px;
       }
       button {
-        padding: 10px 16px;
+        padding: 12px 16px;
         border: none;
         border-radius: 4px;
         background-color: #1a73e8;
@@ -29,12 +29,22 @@
         font-weight: 500;
         cursor: pointer;
         transition: background-color 0.2s;
+        font-size: 14px;
       }
       button:hover {
         background-color: #0d62c7;
       }
-      .shortcut {
+      .info {
         margin-top: 16px;
+        padding: 10px;
+        background-color: #f8f9fa;
+        border-radius: 4px;
+        font-size: 13px;
+        color: #555;
+        line-height: 1.4;
+      }
+      .shortcut {
+        margin-top: 12px;
         font-size: 12px;
         color: #666;
       }
@@ -45,14 +55,6 @@
         padding: 2px 4px;
         box-shadow: 0 1px 1px rgba(0, 0, 0, 0.2);
       }
-      .info {
-        margin-top: 12px;
-        padding: 8px;
-        background-color: #f8f9fa;
-        border-radius: 4px;
-        font-size: 12px;
-        color: #555;
-      }
     </style>
   </head>
   <body>
@@ -60,11 +62,10 @@
 
     <div class="button-container">
       <button id="openInApp">영상으로 필기 시작하기</button>
-      <button id="detectVideo">현재 페이지 영상 감지</button>
     </div>
 
     <div class="info">
-      <p>필기 앱에서도 캡처 기능을 사용할 수 있습니다.</p>
+      <p>필기 앱 내에서 영역 캡처 기능을 사용할 수 있습니다. 영상을 보면서 노트 작성 시 캡처 버튼을 클릭하여 영상 화면을 캡처하세요.</p>
     </div>
 
     <div class="shortcut">
