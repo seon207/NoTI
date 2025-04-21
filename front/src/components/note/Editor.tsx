@@ -57,12 +57,15 @@ function Editor(
   props: EditorProps,
   ref: ForwardedRef<{ addTimestamp: (_time: number) => void }>,
 ) {
-  const { videoId, initialTimestamp = 0 } = props;
+  const { videoId, initialTimestamp = 0, title = '새 노트' } = props;
   const [storageKey, setStorageKey] = useState<string>('default-note');
   const [aiSuggestions, setAiSuggestions] = useState<
     Record<string, AISuggestion>
   >({});
-  const [noteTitle, setNoteTitle] = useState<string>('title');
+  const [noteTitle, setNoteTitle] = useState<string>(title || '새 노트');
+  const [isTitleDefault, setIsTitleDefault] = useState<boolean>(
+    title === '새 노트',
+  );
 
   function formatTime(seconds: number): string {
     const mins = Math.floor(seconds / 60);
@@ -88,7 +91,7 @@ function Editor(
       console.error('노트 불러오기 실패:', error);
     }
 
-    // 기본 내용
+    // 기본 내용 - 첫 번째 안내 메시지만 포함
     return [
       {
         type: 'paragraph',
@@ -96,17 +99,7 @@ function Editor(
           {
             type: 'text',
             text: '여기에 필기를 시작하세요...',
-            styles: {},
-          },
-        ],
-      },
-      {
-        type: 'paragraph',
-        content: [
-          {
-            type: 'text',
-            text: '슬래시(/) 키를 눌러 다양한 서식을 추가해보세요!',
-            styles: {},
+            styles: { textColor: '#dfe2e6' },
           },
         ],
       },
@@ -279,6 +272,51 @@ function Editor(
     };
   }, [editor, storageKey]);
 
+  // 에디터 블록 업데이트 시 기본 문구 제거 처리
+  useEffect(() => {
+    if (!editor) return;
+
+    // 블록에 포커스될 때 기본 문구 제거 처리
+    const handleSelectionChange = () => {
+      // 현재 선택된 블록 확인
+      const { block } = editor.getTextCursorPosition();
+      if (!block) return;
+
+      // 선택된 블록의 내용 확인
+      const content = editor.getBlock(block.id);
+      if (
+        content &&
+        content.type === 'paragraph' &&
+        content.content.length === 1 &&
+        content.content[0].type === 'text' &&
+        content.content[0].text === '여기에 필기를 시작하세요...'
+      ) {
+        // 기본 문구 지우기
+        editor.updateBlock(block, {
+          content: [
+            {
+              type: 'text',
+              text: '',
+              styles: {},
+            },
+          ],
+        });
+      }
+    };
+
+    // 에디터 클릭 이벤트 리스너 추가
+    document
+      .querySelector('.bn-container')
+      ?.addEventListener('click', handleSelectionChange);
+
+    return () => {
+      // 클린업 함수
+      document
+        .querySelector('.bn-container')
+        ?.removeEventListener('click', handleSelectionChange);
+    };
+  }, [editor]);
+
   // 타임스탬프 추가 함수
   const addTimestamp = useCallback(
     (time: number) => {
@@ -412,6 +450,14 @@ function Editor(
       },
     }));
   }, []);
+
+  // 제목 클릭/포커스 시 기본 텍스트 초기화
+  const handleTitleFocus = useCallback(() => {
+    if (isTitleDefault) {
+      setNoteTitle('');
+      setIsTitleDefault(false);
+    }
+  }, [isTitleDefault]);
 
   // useImperativeHandle로 부모 컴포넌트에서 접근 가능한 메서드 정의
   useImperativeHandle(
@@ -591,6 +637,8 @@ function Editor(
           type="text"
           value={noteTitle}
           onChange={(e) => setNoteTitle(e.target.value)}
+          onFocus={handleTitleFocus}
+          onClick={handleTitleFocus}
           className="w-full px-4 py-3 text-2xl font-bold border-b-2 border-gray-200 focus:outline-none focus:border-indigo-500 transition-colors duration-200"
           placeholder="노트 제목을 입력하세요"
           aria-label="노트 제목"

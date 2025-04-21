@@ -51,6 +51,7 @@ function WatchPage() {
   const editorRef = useRef<any>(null);
   const [isMobile, setIsMobile] = useState(false);
 
+
   // 화면 크기 변경 감지
   useEffect(() => {
     const handleResize = () => {
@@ -72,14 +73,6 @@ function WatchPage() {
   // 동영상 시간 업데이트 핸들러
   const handleTimeUpdate = (time: number) => {
     setCurrentTime(time);
-  };
-
-  // 타임스탬프 추가 핸들러
-  const handleAddTimestamp = () => {
-    // 에디터 ref를 통해 addTimestamp 메서드에 접근
-    if (editorRef.current?.addTimestamp) {
-      editorRef.current.addTimestamp(currentTime);
-    }
   };
 
   // 플레이어 에러 핸들러
@@ -158,39 +151,32 @@ function WatchPage() {
                 </div>
               )}
             </div>
-            <div className="p-2 bg-gray-100 border-t border-gray-200 flex justify-center">
-              <button
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors"
-                onClick={handleAddTimestamp}
-                disabled={loading || !!error}
-              >
-                현재 시간 타임스탬프 추가
-              </button>
-            </div>
           </div>
         </Panel>
-
         <PanelResizeHandle>
           <div
             className={
               isMobile
-                ? 'h-2 w-full cursor-row-resize'
-                : 'w-2 h-full cursor-col-resize'
+                ? 'h-4 w-full cursor-row-resize bg-gray-200 flex items-center justify-center'
+                : 'w-3 h-full cursor-col-resize bg-gray-200 flex items-center justify-center'
             }
           >
+            {/* 절대 위치 사용하지 않고 Flexbox로 중앙 정렬 */}
             <div
-              className={`bg-gray-300 rounded absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 ${
-                isMobile ? 'h-1 w-10' : 'w-1 h-10'
-              }`}
+              className={
+                isMobile
+                  ? 'h-1 w-4 bg-gray-400 rounded'
+                  : 'w-1 h-12 bg-gray-400 rounded'
+              }
             />
           </div>
         </PanelResizeHandle>
-
         <Panel defaultSize={50} minSize={20}>
           <div className="h-full w-full overflow-hidden">
+            {/* isResizing 상태를 Editor에 전달 */}
             <Editor
               ref={editorRef}
-              videoId={videoUrl} // 여기서는 URL을 ID로 사용
+              videoId={videoUrl}
               initialTimestamp={currentTime}
             />
           </div>

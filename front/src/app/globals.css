@@ -120,3 +120,45 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* 리사이징 중 블록노트 컨트롤 처리 */
+.resize-in-progress .bn-block-content-wrapper::before,
+.resize-in-progress .bn-add-block-button,
+.resize-in-progress .bn-block-menu-button {
+  opacity: 0 !important;
+  visibility: hidden !important;
+}
+
+/* 자연스러운 전환 효과 */
+.bn-block-content-wrapper::before,
+.bn-add-block-button,
+.bn-block-menu-button {
+  transition:
+    opacity 0.3s ease,
+    visibility 0.3s ease;
+}
+
+/* global.css에 추가 */
+.resize-in-progress .bn-container {
+  pointer-events: none;
+}
+
+.resize-in-progress .bn-container::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 9999;
+  background-color: rgba(255, 255, 255, 0.01); /* 거의 투명 */
+}
+
+.resize-in-progress .bn-block-content-wrapper::before,
+.resize-in-progress .bn-add-block-button,
+.resize-in-progress .bn-block-menu-button,
+.resize-in-progress .bn-menu-portal,
+.resize-in-progress .bn-floating-menu,
+.resize-in-progress .bn-selected {
+  display: none !important;
+}
