@@ -122,15 +122,16 @@ function WatchPage() {
       >
         <Panel defaultSize={50} minSize={20}>
           <div className="h-full flex flex-col">
-            <div className="flex-grow relative bg-black">
+            {/* 여기서 flex-grow를 제거하고 h-full을 추가합니다 */}
+            <div className="relative w-full h-full bg-black flex items-center justify-center">
               {loading && (
-                <div className="absolute inset-0 flex items-center justify-center text-white">
+                <div className="absolute inset-0 flex items-center justify-center text-white z-10">
                   <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-white"></div>
                 </div>
               )}
 
               {error && (
-                <div className="absolute inset-0 flex items-center justify-center text-white bg-red-900/50">
+                <div className="absolute inset-0 flex items-center justify-center text-white bg-red-900/50 z-10">
                   <div className="bg-red-800 p-4 rounded-lg max-w-md">
                     <h3 className="font-bold mb-2">오류 발생</h3>
                     <p>{error}</p>
@@ -138,18 +139,23 @@ function WatchPage() {
                 </div>
               )}
 
+              {/* VideoPlayer를 감싸는 div에 높이와 너비를 100%로 설정합니다 */}
               {videoUrl && (
-                <VideoPlayer
-                  videoUrl={videoUrl}
-                  videoId={videoData.videoId}
-                  platform={videoData.platform}
-                  title={videoData.title}
-                  isLive={videoData.isLive}
-                  onTimeUpdate={handleTimeUpdate}
-                  onReady={handlePlayerReady}
-                  onError={handlePlayerError}
-                  initialTime={initialTime}
-                />
+                <div className="w-full h-full flex items-center justify-center">
+                  <div className="w-full h-full" style={{ maxWidth: '100%' }}>
+                    <VideoPlayer
+                      videoUrl={videoUrl}
+                      videoId={videoData.videoId}
+                      platform={videoData.platform}
+                      title={videoData.title}
+                      isLive={videoData.isLive}
+                      onTimeUpdate={handleTimeUpdate}
+                      onReady={handlePlayerReady}
+                      onError={handlePlayerError}
+                      initialTime={initialTime}
+                    />
+                  </div>
+                </div>
               )}
             </div>
             <div className="p-2 bg-gray-100 border-t border-gray-200 flex justify-center">

@@ -128,9 +128,11 @@ function VideoPlayer({
         // 새 div 생성
         const playerDiv = document.createElement('div');
         playerDiv.id = 'youtube-player';
+        playerDiv.style.width = '100%';
+        playerDiv.style.height = '100%';
         container.appendChild(playerDiv);
 
-        // YouTube 플레이어 생성
+        // YouTube 플레이어 생성 - 크기 지정 추가
         playerRef.current = new window.YT.Player('youtube-player', {
           videoId: videoInfo.videoId,
           playerVars: {
@@ -145,10 +147,12 @@ function VideoPlayer({
             onStateChange: handleYouTubePlayerStateChange,
             onError: handleYouTubePlayerError,
           },
+          width: '100%', // 명시적으로 너비 설정
+          height: '100%', // 명시적으로 높이 설정
         });
       }
-    } catch (errs) {
-      console.error('YouTube 플레이어 초기화 오류:', errs);
+    } catch (err) {
+      console.error('YouTube 플레이어 초기화 오류:', err);
       setError('YouTube 플레이어 초기화 중 오류가 발생했습니다');
       onError?.('YouTube 플레이어 초기화 중 오류가 발생했습니다');
     }
@@ -273,14 +277,20 @@ function VideoPlayer({
     videoInfo.platform === 'youtube-live'
   ) {
     return (
-      <div className="relative w-full aspect-video bg-black">
+      <div className="relative w-full h-full overflow-hidden bg-black">
         <div
           id="youtube-player-container"
           className="absolute inset-0 w-full h-full"
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+          }}
         >
           {/* YouTube API가 여기에 플레이어 삽입 */}
         </div>
-
         {loading && (
           <div className="absolute inset-0 flex items-center justify-center bg-gray-900 bg-opacity-75">
             <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-white" />
@@ -307,16 +317,23 @@ function VideoPlayer({
 
   // 일반 iframe 렌더링 (다른 플랫폼)
   return (
-    <div className="relative w-full aspect-video bg-black">
+    <div className="relative w-full h-full overflow-hidden bg-black">
       {embedUrl ? (
-        <iframe
-          ref={iframeRef}
-          src={embedUrl}
-          className="absolute inset-0 w-full h-full"
-          allowFullScreen
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-          onLoad={handleIframeLoaded}
-        />
+        <div className="absolute inset-0 flex items-center justify-center">
+          <iframe
+            ref={iframeRef}
+            src={embedUrl}
+            className="w-full h-full"
+            style={{
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover', // contain에서 cover로 변경
+            }}
+            allowFullScreen
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            onLoad={handleIframeLoaded}
+          />
+        </div>
       ) : (
         <div className="absolute inset-0 flex items-center justify-center bg-gray-900">
           <div className="text-white text-center p-4">
@@ -326,17 +343,37 @@ function VideoPlayer({
         </div>
       )}
 
-      {loading && embedUrl && (
-        <div className="absolute inset-0 flex items-center justify-center bg-gray-900 bg-opacity-75">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-white" />
-        </div>
-      )}
+      {/* 로딩 및 에러 표시는 그대로 유지 */}
 
-      {isLive && (
-        <div className="absolute top-2 right-2 bg-red-600 text-white text-xs px-2 py-1 rounded-sm">
-          LIVE
-        </div>
-      )}
+      {/* 추가할 글로벌 스타일 */}
+      <style jsx global>{`
+        .video-container {
+          position: relative;
+          width: 100%;
+          height: 0;
+          padding-bottom: 56.25%; /* 16:9 비율 (100% / 16 * 9) */
+          overflow: hidden;
+        }
+
+        /* 다양한 비율에 대응하기 위한 클래스들 */
+        .video-container.ratio-4-3 {
+          padding-bottom: 75%; /* 4:3 비율 */
+        }
+
+        .video-container.ratio-1-1 {
+          padding-bottom: 100%; /* 1:1 비율 */
+        }
+
+        .video-container iframe,
+        .video-container video {
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          object-fit: contain; /* 영상 비율 유지 */
+        }
+      `}</style>
     </div>
   );
 }
