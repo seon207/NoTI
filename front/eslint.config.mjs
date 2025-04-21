@@ -32,13 +32,14 @@ const eslintConfig = [
 
     // 모든 규칙들을 여기로 이동
     rules: {
-      "no-plusplus": "off",
+      'no-plusplus': 'off',
       'react/react-in-jsx-scope': 'off',
       'react/jsx-props-no-spreading': 'off',
       'react/require-default-props': 'off',
       '@typescript-eslint/explicit-module-boundary-types': 'off',
+      'consistent-return': 'off',
       'import/prefer-default-export': 'off',
-      "no-unused-vars": ["error", { "argsIgnorePattern": "^_" }],
+      'no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
       'react/function-component-definition': [
         'error',
         {

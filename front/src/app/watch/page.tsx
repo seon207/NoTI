@@ -5,41 +5,49 @@ import { useSearchParams } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 
-// 커스텀 비디오 플레이어 컴포넌트 임포트
-const CustomVideoPlayer = dynamic(
-  () => import('@/components/CustomVideoPlayer'),
-  {
-    ssr: false,
-  },
-);
+// 컴포넌트 동적 임포트
+const VideoPlayer = dynamic(() => import('@/components/VideoPlayer'), {
+  ssr: false,
+});
 
-// 에디터 컴포넌트 동적 임포트
 const Editor = dynamic(() => import('@/components/note/Editor'), {
   ssr: false,
   loading: () => <div className="p-4">에디터 로딩 중...</div>,
 });
 
-interface VideoData {
-  videoUrl: string;
-  title: string;
-  thumbnail?: string;
-  duration?: number;
-}
+// interface VideoData {
+//   title: string;
+//   videoId?: string;
+//   platform?: string;
+//   isLive?: boolean;
+// }
 
 function WatchPage() {
   const searchParams = useSearchParams();
-  const videoId = searchParams.get('v');
+  const videoId = searchParams.get('v') || undefined; // null을 undefined로 변환
   const directUrl = searchParams.get('url');
+  const platform = searchParams.get('platform') || '';
+  const title = searchParams.get('title') || '영상 제목';
+  const isLive = searchParams.get('live') === '1';
+  const initialTime = searchParams.get('t')
+    ? parseInt(searchParams.get('t') || '0', 10)
+    : 0;
 
-  // YouTube인 경우와 그 외의 경우 분기
+  // 비디오 URL 결정
   const videoUrl = videoId
     ? `https://www.youtube.com/watch?v=${videoId}`
     : directUrl || '';
 
-  const [videoData, setVideoData] = useState<VideoData | null>(null);
-  const [loading, setLoading] = useState(true);
+  const videoData = {
+    title: title || '영상 제목',
+    videoId,
+    platform: platform || (videoId ? 'youtube' : ''),
+    isLive,
+  };
+
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [currentTime, setCurrentTime] = useState<number>(0);
+  const [currentTime, setCurrentTime] = useState<number>(initialTime);
   const editorRef = useRef<any>(null);
   const [isMobile, setIsMobile] = useState(false);
 
@@ -61,66 +69,50 @@ function WatchPage() {
     };
   }, []);
 
-  // 비디오 데이터 로드
-  useEffect(() => {
-    const fetchVideoData = async () => {
-      if (!videoUrl) {
-        setError('유효한 URL이 제공되지 않았습니다');
-        setLoading(false);
-        return;
-      }
-
-      setLoading(true);
-      setError(null);
-
-      try {
-        console.log('API 요청 URL:', videoUrl);
-
-        const response = await fetch('/api/extract-video', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ url: videoUrl }),
-        });
-
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(
-            errorData.error || '비디오 정보를 가져오는데 실패했습니다',
-          );
-        }
-
-        const data = await response.json();
-        console.log('비디오 데이터 받음:', data);
-        setVideoData(data);
-      } catch (err) {
-        console.error('Error fetching video:', err);
-        setError(
-          err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다',
-        );
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (videoUrl) {
-      fetchVideoData();
-    }
-  }, [videoUrl]);
-
   // 동영상 시간 업데이트 핸들러
   const handleTimeUpdate = (time: number) => {
     setCurrentTime(time);
   };
 
   // 타임스탬프 추가 핸들러
-  const addTimestamp = () => {
+  const handleAddTimestamp = () => {
     // 에디터 ref를 통해 addTimestamp 메서드에 접근
     if (editorRef.current?.addTimestamp) {
       editorRef.current.addTimestamp(currentTime);
     }
   };
+
+  // 플레이어 에러 핸들러
+  const handlePlayerError = (err: string) => {
+    setError(err);
+  };
+
+  // 플레이어 준비 완료 핸들러
+  const handlePlayerReady = () => {
+    setLoading(false);
+  };
+
+  // 스크린샷 캡처 이벤트 리스너
+  useEffect(() => {
+    const handleCaptureScreenshot = (event: CustomEvent) => {
+      const { image, time } = event.detail;
+      if (image && editorRef.current?.insertImage) {
+        editorRef.current.insertImage(image, time);
+      }
+    };
+
+    window.addEventListener(
+      'capture-screenshot' as any,
+      handleCaptureScreenshot as any,
+    );
+
+    return () => {
+      window.removeEventListener(
+        'capture-screenshot' as any,
+        handleCaptureScreenshot as any,
+      );
+    };
+  }, []);
 
   return (
     <div className="flex flex-col h-screen">
@@ -146,18 +138,24 @@ function WatchPage() {
                 </div>
               )}
 
-              {videoData && (
-                <CustomVideoPlayer
-                  videoUrl={videoData.videoUrl}
+              {videoUrl && (
+                <VideoPlayer
+                  videoUrl={videoUrl}
+                  videoId={videoData.videoId}
+                  platform={videoData.platform}
                   title={videoData.title}
+                  isLive={videoData.isLive}
                   onTimeUpdate={handleTimeUpdate}
+                  onReady={handlePlayerReady}
+                  onError={handlePlayerError}
+                  initialTime={initialTime}
                 />
               )}
             </div>
             <div className="p-2 bg-gray-100 border-t border-gray-200 flex justify-center">
               <button
                 className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors"
-                onClick={addTimestamp}
+                onClick={handleAddTimestamp}
                 disabled={loading || !!error}
               >
                 현재 시간 타임스탬프 추가

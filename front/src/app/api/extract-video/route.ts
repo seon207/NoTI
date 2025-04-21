@@ -37,6 +37,7 @@ export async function POST(request: NextRequest) {
 
     // 메타데이터 가져오기 (JSON 형식)
     try {
+      // 메타데이터 가져오기
       const { stdout: metadataOutput } = await execPromise(
         `"${ytdlpPath}" -j "${url}"`,
       );
@@ -44,19 +45,29 @@ export async function POST(request: NextRequest) {
       const metadata = JSON.parse(metadataOutput);
       console.log('메타데이터 추출 성공');
 
-      // 비디오 URL 가져오기
-      const { stdout: videoUrlOutput } = await execPromise(
-        `"${ytdlpPath}" -g -f "best[height<=720]/best" "${url}"`,
-      );
+      // 라이브 스트림 확인
+      const isLive = metadata.is_live || metadata.live_status === 'is_live';
+      console.log('라이브 스트림 여부:', isLive);
 
+      let videoUrlCmd;
+
+      if (isLive) {
+        // 라이브 스트림에 적합한 포맷
+        videoUrlCmd = `"${ytdlpPath}" -g -f "best" "${url}"`;
+      } else {
+        // 일반 영상
+        videoUrlCmd = `"${ytdlpPath}" -g -f "best[height<=720]/best" "${url}"`;
+      }
+
+      const { stdout: videoUrlOutput } = await execPromise(videoUrlCmd);
       const videoUrl = videoUrlOutput.trim();
-      console.log('비디오 URL 추출 성공');
 
       return NextResponse.json({
         videoUrl,
         title: metadata.title || '제목 없음',
         thumbnail: metadata.thumbnail,
         duration: metadata.duration,
+        isLive,
       });
     } catch (ytdlpError) {
       console.error('yt-dlp 실행 오류:', ytdlpError);
