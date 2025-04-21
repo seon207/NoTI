@@ -711,48 +711,32 @@ async function captureSelectedArea(tabId, area) {
   }
 }
 
-// 기존 메시지 이벤트 핸들러에 다음 조건만 추가
+// 하나의 메시지 이벤트 핸들러만 유지
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   console.log('메시지 수신:', message);
 
+  // 현재 탭 ID 가져오기
+  const tabId = sender.tab ? sender.tab.id : null;
+  console.log('메시지 발신 탭 ID:', tabId);
+
   if (message.action === 'detectVideo') {
-    detectVideoInPage(message.tabId, message.url);
+    detectVideoInPage(message.tabId || tabId, message.url);
   } else if (message.action === 'startAreaCapture') {
-    startAreaCapture(message.tabId);
+    // 탭 ID가 제공되지 않았으면 메시지 발신 탭 ID 사용
+    startAreaCapture(message.tabId || tabId);
   } else if (message.action === 'captureVideo') {
-    captureVideoInPage(message.tabId);
+    captureVideoInPage(message.tabId || tabId);
   } else if (message.action === 'areaSelected') {
     captureSelectedArea(sender.tab.id, message.area);
   } else if (message.action === 'openVideoInApp') {
     openVideoInApp(message);
-  }
-  // 다음 조건 추가
-  else if (message.action === 'testCommunication') {
+  } else if (message.action === 'testCommunication') {
     // 웹 앱과의 통신 테스트
     chrome.tabs.sendMessage(sender.tab.id, {
       action: 'communicationResult',
       success: true
     });
     sendResponse({ success: true, message: '통신 테스트 성공' });
-  }
-
-  return true; // 비동기 응답을 위해 true 반환
-});
-
-// 메시지 이벤트 처리
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  console.log('메시지 수신:', message);
-
-  if (message.action === 'detectVideo') {
-    detectVideoInPage(message.tabId, message.url);
-  } else if (message.action === 'startAreaCapture') {
-    startAreaCapture(message.tabId);
-  } else if (message.action === 'captureVideo') {
-    captureVideoInPage(message.tabId);
-  } else if (message.action === 'areaSelected') {
-    captureSelectedArea(sender.tab.id, message.area);
-  } else if (message.action === 'openVideoInApp') {
-    openVideoInApp(message);
   }
 
   return true; // 비동기 응답을 위해 true 반환
