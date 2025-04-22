@@ -21,7 +21,7 @@ declare global {
 }
 
 // 모듈로 만들기 위한 빈 export 추가
-export {};
+export { };
 
 interface VideoPlayerProps {
   videoUrl: string;
@@ -50,13 +50,20 @@ function VideoPlayer({
   const [error, setError] = useState<string | null>(null);
   const playerRef = useRef<any>(null); // YouTube 플레이어 인스턴스
 
+  // Google Analytics 관련 변수들
+  const lastTimePositionRef = useRef<number>(0);
+  const lastEventTimeRef = useRef<number>(0);
+
+
+  const gaTrackingId = process.env.NEXT_PUBLIC_GOOGLE_ANALYTICS_ID;
+
   // 비디오 정보 추출
   const videoInfo = videoId
     ? {
-        platform: (platform as any) || 'youtube',
-        videoId,
-        isLive,
-      }
+      platform: (platform as any) || 'youtube',
+      videoId,
+      isLive,
+    }
     : extractVideoInfo(videoUrl);
 
   // iframe URL 생성
@@ -95,6 +102,10 @@ function VideoPlayer({
   const handleYouTubePlayerStateChange = (event: any) => {
     // 상태 변경 처리 (재생, 일시정지, 종료 등)
     console.log('플레이어 상태 변경:', event.data);
+
+    // 재생 위치 추적 및 GA 이벤트 발생
+    const currentTime = Math.floor(event.target.getCurrentTime());
+    trackPlaybackPosition(currentTime);
   };
 
   const handleYouTubePlayerError = (event: any) => {
@@ -156,6 +167,119 @@ function VideoPlayer({
       setError('YouTube 플레이어 초기화 중 오류가 발생했습니다');
       onError?.('YouTube 플레이어 초기화 중 오류가 발생했습니다');
     }
+  };
+
+  // Google Anayltics 초기화
+  useEffect(() => {
+    // 측정 ID가 없으면 초기화 중단
+    if (!gaTrackingId) {
+      console.log("GA 측정 ID가 설정되지 않았습니다. 환경변수 NEXT_PUBLIC_GOOGLE_ANALYTICS_ID를 확인하세요");
+      return;
+    }
+
+    // GA4가 이미 초기화되었는지 확인
+    if (typeof window.gtag === 'function') return;
+
+    // GA4 스크립트 추가
+    const script = document.createElement('script');
+    script.async = true;
+    script.src = `https://www.googletagmanager.com/gtag/js?id=${gaTrackingId}`;
+    document.head.appendChild(script);
+
+    // GA4 초기화 코드
+    window.dataLayer = window.dataLayer || [];
+    function gtag(..._args: any[]) {
+      window.dataLayer.push(arguments);
+    }
+    gtag('js', new Date()); // GA4 추적 시작
+
+    // 로컬 호스트에서는 디버그 모드로 설정
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+      gtag('config', gaTrackingId, {
+        'debug_mode': true,
+        'send_page_view': false
+      });
+      console.info('Google Analytics가 디버그 모드로 초기화되었습니다.');
+    } else {
+      gtag('config', gaTrackingId, {
+        'send_page_view': false
+      });
+    }
+
+    // gtag 함수를 전역 함수로 설정
+    window.gtag = gtag;
+  })
+
+  // 시간 구간 계산 (5분 단위)
+  const timeSegementLabel = (currentTime: number): string => {
+    const timeSegement = Math.floor(currentTime / 5) * 5;
+
+    return `${timeSegement}-${timeSegement + 5}`;
+  }
+
+  // 재생 위치 추적 및 GA 이벤트 발생 (시크 감지용 - 시크: 영상 내 이동)
+  const trackPlaybackPosition = (currentTimePosition: number) => {
+    const currentTimeInt = Math.floor(currentTimePosition);
+    const lastTimeInt = Math.floor(lastTimePositionRef.current);
+    const timeLabel = timeSegementLabel(currentTimeInt);
+
+    const videoId = playerRef.current?.getVideoData().video_id;
+    const video_title = playerRef.current?.getVideoData().title;
+
+    if (currentTimeInt <= 2 && lastTimeInt > 2) {
+      sendGAEvent('video_restart', {
+        video_id: videoId,
+        video_title: playerRef.current?.getVideoData()?.title || 'Unknown',
+        from_position: lastTimeInt,
+        time_label: timeLabel
+      });
+    }
+    // 시간 변화가 크면 사용자가 앞/뒤로 이동했다고 판단 (3초 이상 차이)
+    else if (Math.abs(currentTimeInt - lastTimeInt) > 3) {
+      // 현재 시간에서 마지막 시간을 빼서 양수면 앞으로, 음수면 뒤로 이동
+      if (currentTimeInt > lastTimeInt) {
+        sendGAEvent('video_forward', {
+          video_id: videoId,
+          video_title: video_title,
+          from_position: lastTimeInt,
+          to_position: currentTimeInt,
+          seek_amount: currentTimeInt - lastTimeInt,
+          time_label: timeLabel
+        });
+      } else {
+        sendGAEvent('video_backward', {
+          video_id: videoId,
+          video_title: video_title,
+          from_position: lastTimeInt,
+          to_position: currentTimeInt,
+          seek_amount: lastTimeInt - currentTimeInt,
+          time_label: timeLabel
+        });
+      }
+    }
+    lastTimePositionRef.current = currentTimePosition;
+  };
+
+  // GA 이벤트 전송 함수 (중복 방지 로직 포함)
+  // 빠르게 연속해서 발생할 수 있는 이벤트(예: 시크 바 드래그, 빠른 클릭)가 GA에 중복 전송되는 것을 방지
+  const sendGAEvent = (eventName: string, params: any) => {
+    // 측정 ID가 없으면 이벤트 전송 중단
+    if (!gaTrackingId) return;
+
+    const now = Date.now();
+
+    // 300ms 내에 동일한 이벤트가 발생하지 않도록 방지 (중복 방지)
+    if (now - lastEventTimeRef.current < 300) {
+      return;
+    }
+
+    // GA4 이벤트 전송
+    if (typeof window.gtag === 'function') {
+      window.gtag('event', eventName, params);
+      console.log(`GA 이벤트 전송: ${eventName}`, params);
+    }
+
+    lastEventTimeRef.current = now;
   };
 
   // YouTube API 초기화
