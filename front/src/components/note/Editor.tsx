@@ -595,6 +595,20 @@ function Editor(props: EditorProps, ref: ForwardedRef<{ addTimestamp: (_time: nu
           <button
             type="button"
             className="px-3 py-1 border-1 text-black rounded text-sm flex items-center cursor-pointer"
+            onClick={async () => {
+              try {
+                const content = JSON.stringify(editor.document);
+                const response = await fetch('http://localhost:8080/api/download/notion', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ content }),
+                });
+                if (!response.ok) throw new Error('서버 응답 실패');
+                console.log('서버로 전송 성공!');
+              } catch (err) {
+                console.error('서버 전송 실패', err);
+              }
+            }}
           >
             Notion
           </button>
