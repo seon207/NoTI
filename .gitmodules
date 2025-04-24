@@ -1,0 +1,6 @@
+[submodule "noti-frontend"]
+	path = noti-frontend
+	url = https://lab.ssafy.com/noti/noti-frontend.git
+[submodule "noti-backend"]
+	path = noti-backend
+	url = https://lab.ssafy.com/noti/noti-backend.git
