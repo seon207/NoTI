@@ -4,3 +4,6 @@
 [submodule "noti-backend"]
 	path = noti-backend
 	url = https://lab.ssafy.com/noti/noti-backend.git
+[submodule "noti-ai"]
+	path = noti-ai
+	url = https://lab.ssafy.com/noti/noti-ai.git
