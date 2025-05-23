@@ -336,29 +336,31 @@ src
 ### 구현진
 
 - **백엔드 개발**
-	  - 회원 및 강의실 API 개발
-	  	  - JWT 기반 인증 및 Google OAuth 로그인 구현
-	  	  - 작성한 노트 수 및 연속 작성 일수 통계 제공
-	  -  강의 통계 API 개발
-	      - Google Anayltics를 통한 강의별 '뒤로가기' 이벤트 수집
-	      - 배치 작업 및 스케줄링을 통해 통계 생성 및 업데이트
-	  - AI 정리 기능
-	      - OpenAI API를 활용한 프롬프트 엔지니어링 기반 요약 기능 구현
-	      - Resilience4J RateLimiter를 사용한 분당 호출 횟수 제한 처리
+  - 회원 및 강의실 API 개발
+    - JWT 기반 인증 및 Google OAuth 로그인 구현
+    - 작성한 노트 수 및 연속 작성 일수 통계 제공
+
+  - 강의 통계 API 개발
+    - Google Anayltics를 통한 강의별 '뒤로가기' 이벤트 수집
+    - 배치 작업 및 스케줄링을 통해 통계 생성 및 업데이트
+
+  - AI 정리 기능
+    - OpenAI API를 활용한 프롬프트 엔지니어링 기반 요약 기능 구현
+    - Resilience4J RateLimiter를 사용한 분당 호출 횟수 제한 처리
 	  	 
 ### 김선주
 
 - **백엔드 개발**
-	  - 노트, 피드백, 첨부파일 등 API 개발
-	  - Notion, PDF 추출 기능 개발
-	  - OCR 활용 텍스트 추출 기능 개발
-	  
+	- 노트, 피드백, 첨부파일 등 API 개발
+	- Notion, PDF 추출 기능 개발
+	- OCR 활용 텍스트 추출 기능 개발
+
 - **인프라**
-		- Jenkins, Docker를 이용한 배포 자동화
-				- Next.js, Spring boot 프로젝트의 GitLab Webhook 기반 CI/CD 파이프라인 구성
-				- CUDA 기반 GPU 서버 세팅 및 FastAPI 배포
-				- BuildKit 및 Docker 레이어 캐시 활용을 통한 Next.js 빌드 속도 최적화
-				- Nginx 기반 리버스 프록시 구성을 통한 HTTPS 및 포트 정리, 서비스 간 요청 라우팅 처리
+  - Jenkins, Docker를 이용한 배포 자동화
+    - Next.js, Spring boot 프로젝트의 GitLab Webhook 기반 CI/CD 파이프라인 구성
+    - CUDA 기반 GPU 서버 세팅 및 FastAPI 배포
+    - BuildKit 및 Docker 레이어 캐시 활용을 통한 Next.js 빌드 속도 최적화
+    - Nginx 기반 리버스 프록시 구성을 통한 HTTPS 및 포트 정리, 서비스 간 요청 라우팅 처리
 
 ### 전승기
 
