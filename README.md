@@ -380,7 +380,27 @@ src
 ### 전용현
 
 - **백엔드 개발**
+    - 강의, 스크립트 API 개발
+    - MCP 챗봇 구현
+      - brave search API 연동으로 웹 검색 구현
+      - mongoDB에서 사용자 대화이력 조회
+    - 챗봇 키워드 추출 및 통계 기능 API
+    - 유튜브 임베딩 정보 저장 자동화 구현
+      - celery + Redis를 통한 유튜브 스크립트 추출 비동기 처리
 
+
+- **익스텐션 개발**
+    - 크롬 확장 프로그램 기반 STT 및 화면 캡처 기능
+	    - Offscreen API를 통한 tabCapture 권한 관리 및 WebSocket 연결
+	    - window.postMessage를 활용한 STT 음성 인식 결과 실시간 전달
+
+- **AI 개발**
+    - 실시간 STT 기능 개발
+      - whisper-large-v3 모델 커스텀 ->  웹소켓으로 익스텐션 연결 및 tapcapture로 들어오는 버퍼 float32로 변환
+      - 인식도 향상을 위한 프롬프팅 및 히스토리 적용 -> 슬라이딩 윈도우 기법으로 과도한 히스토리 토큰 방지
+    - 음성 감지 모델(VAD) silero 적용
+      - 침묵 구간 및 배경음악에서 불필요한 감지 방지
+      - 감지구간에 패딩 추가 -> 음성정보 손실 방지
 ---
 
 ## 기능 시연
@@ -396,7 +416,7 @@ src
 
 ### 홈
 
-![home](gif/mainpage.gif)
+![home](img/mainpage.gif)
 
 
 ---
