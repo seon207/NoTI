@@ -405,18 +405,37 @@ src
 
 ## 기능 시연
 
+### 아카이브
+- 메인 홈
+![archive](etc/main.gif)
+- 노트 관리
+![contextNote](etc/context-note.gif)
+- 휴지통
+![trash](etc/trash.gif)
+
+### 노트
+- 노트 접근
+![openNote](etc/openNote.gif)
+- 리치텍스트 에디터
+![note](etc/note.gif)
+- 스크린샷
+![screenshot1](etc/screenshot.gif)
+![screenshot2](etc/screenshot2.gif)
+- OCR
+![OCR](etc/OCR.gif)
+- PDF 내보내기
+![pdf](etc/pdf.gif)
+- Notion 내보내기
+![notion](etc/notion.gif)
+
 ### 챗봇
-![chatbot](img/챗봇.gif)
+![chatbot](etc/chatbot.gif)
 
 ### 실시간 요약(STT)
-![stt](img/실시간_요약.gif)
+![stt](etc/stt.gif)
 
 ### AI 노트정리
-![AIsuggestion](img/AI정리.gif)
-
-### 홈
-
-![home](img/mainpage.gif)
+![AIsuggestion](etc/ai-summary.gif)
 
 
 ---
