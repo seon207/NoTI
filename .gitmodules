@@ -1,9 +1,12 @@
 [submodule "noti-frontend"]
 	path = noti-frontend
 	url = https://github.com/seon207/NoTI-Frontend.git
+	branch = develop
 [submodule "noti-backend"]
 	path = noti-backend
 	url = https://github.com/seon207/NoTI-Backend.git
+	branch = develop
 [submodule "noti-ai"]
 	path = noti-ai
 	url = https://github.com/seon207/NoTI-AI.git
+	branch = develop
