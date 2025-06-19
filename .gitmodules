@@ -1,9 +1,9 @@
 [submodule "noti-frontend"]
 	path = noti-frontend
-	url = https://lab.ssafy.com/noti/noti-frontend.git
+	url = https://github.com/seon207/NoTI-Frontend.git
 [submodule "noti-backend"]
 	path = noti-backend
-	url = https://lab.ssafy.com/noti/noti-backend.git
+	url = https://github.com/seon207/NoTI-Backend.git
 [submodule "noti-ai"]
 	path = noti-ai
-	url = https://lab.ssafy.com/noti/noti-ai.git
+	url = https://github.com/seon207/NoTI-AI.git
